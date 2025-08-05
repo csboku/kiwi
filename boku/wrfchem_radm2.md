@@ -1,28 +1,35 @@
-# RADM2 Chemical Mechanism
+# RADM2 Chemical Mechanism: A Technical Guide
 
-The Regional Acid Deposition Model 2 (RADM2) is a chemical mechanism that is simpler and computationally less expensive than more comprehensive mechanisms like MOZART. It is a good choice for simulations where detailed tropospheric chemistry is not the primary focus, or for users who are new to WRF-Chem.
+The Regional Acid Deposition Model 2 (RADM2) is a robust and computationally efficient chemical mechanism that is well-suited for a variety of applications.
 
-## Key Features
+## Mechanism Overview
 
--   **Simplified Chemistry**: RADM2 includes a condensed set of chemical reactions for ozone and its precursors. It is less detailed in its representation of VOC chemistry compared to MOZART.
--   **Lower Computational Cost**: Due to its simplicity, RADM2 runs much faster than more complex mechanisms.
--   **Good for Air Quality Studies**: It is well-suited for regional air quality studies focusing on ozone and acid deposition.
+RADM2 is a "lumped" chemical mechanism, which means that it groups volatile organic compounds (VOCs) into a smaller number of surrogate species. This simplification reduces the number of species and reactions that need to be solved, making the mechanism computationally less expensive than more explicit mechanisms like MOZART or RACM.
+
+### Key Features
+
+-   **15 stable inorganic species**
+-   **4 organic "surrogate" species**
+-   **23 photochemical reactions**
 
 ## Use Cases
 
--   **Good for Beginners**: Due to its simplicity and low computational cost, RADM2 is an excellent choice for users who are new to WRF-Chem.
--   **Regional Ozone Studies**: It is well-suited for regional air quality studies where the primary focus is on ozone and its precursors, and where detailed VOC chemistry is not essential.
--   **Computationally Limited Studies**: If you have limited computational resources, RADM2 provides a good balance between chemical detail and computational cost.
+-   **Regional Air Quality Studies**: RADM2 is a workhorse for regional air quality modeling, particularly for studies focusing on ozone and acid deposition.
+-   **Educational Tool**: Its relative simplicity makes it an excellent tool for teaching the fundamentals of atmospheric chemistry and air quality modeling.
+-   **Sensitivity Studies**: The low computational cost of RADM2 allows for a large number of sensitivity studies to be performed, for example, to assess the impact of different emissions scenarios.
 
 ## WRF-Chem `chem_opt`
 
-To use the RADM2 mechanism in WRF-Chem, set the following in your `namelist.input` file:
+-   **`chem_opt = 2`**: The standard RADM2 mechanism.
+-   **`chem_opt = 101`**: The KPP version of RADM2. This version is more flexible and easier to modify.
 
--   `chem_opt = 2`: RADM2 chemical mechanism.
+## Coupling with Aerosols
 
-## Considerations
+RADM2 is often coupled with a simple aerosol scheme, such as the MADE/SORGAM aerosol model (`aer_opt = 1`). This combination provides a good balance between chemical detail and computational cost for studies where aerosol chemistry is not the primary focus.
 
--   **VOCs**: The lumping of VOC species in RADM2 may not be suitable for all research questions. If your study focuses on specific VOCs, a more detailed mechanism might be necessary.
--   **Aerosols**: RADM2 is often used with simpler aerosol schemes.
+## Limitations
 
-For more detailed information, refer to the official WRF-Chem User's Guide and the original scientific papers describing the RADM2 mechanism.
+-   **Simplified VOC Chemistry**: The lumped VOC scheme in RADM2 may not be appropriate for studies that require a detailed representation of specific VOCs or their oxidation products.
+-   **Limited SOA Formation**: The standard RADM2 mechanism does not include a detailed representation of secondary organic aerosol (SOA) formation.
+
+Despite these limitations, RADM2 remains a valuable tool for a wide range of atmospheric chemistry applications. Its computational efficiency and robustness make it an excellent choice for many research and operational forecasting scenarios.

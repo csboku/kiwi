@@ -1,72 +1,92 @@
-# WRF-Chem Installation
+# WRF-Chem Installation: A Quick Start Guide
 
-## Environment Setup
+This guide provides a streamlined overview of the WRF-Chem installation process. For a highly detailed, step-by-step guide that covers compiling all dependencies from source, please see the [Comprehensive Compilation Guide](./wrfchem_compilation_guide.md).
 
-Before compiling WRF-Chem, ensure your environment is correctly set up. This typically involves loading the necessary compilers (e.g., `gcc`, `gfortran`), MPI libraries (e.g., OpenMPI, MPICH), and NetCDF/HDF5 libraries. For more details on different compiler setups, see the [WRF-Chem Compiler Setups](./wrfchem_compiler_setup.md) guide.
+## 1. Environment Setup: The Foundation
 
-Example (adjust paths as necessary for your system):
+A successful WRF-Chem build starts with a properly configured environment.
 
-'''bash
-# Load necessary modules (if using a module system)
-module load intel/2021.2.0
-module load openmpi/4.1.1
-module load netcdf/4.7.4
-module load hdf5/1.12.0
+### Compiler Choice
 
-# Set environment variables
-export NETCDF=/path/to/netcdf
-export HDF5=/path/to/hdf5
-export JASPERLIB=/path/to/jasper/lib
-export JASPERINC=/path/to/jasper/include
-export ZLIB=/path/to/zlib
-export PHDF5=/path/to/parallel_hdf5
-export PNETCDF=/path/to/parallel_netcdf
-'''
+You must use the same compiler suite (Fortran, C, C++) for all components. The two most common choices are:
 
-## Required Sources
+-   **Intel (Recommended for Performance)**:
+    -   **oneAPI (Modern)**: `ifx` (Fortran), `icx` (C), `icpx` (C++).
+    -   **Classic**: `ifort` (Fortran), `icc` (C), `icpc` (C++).
+-   **GNU (Free and Open-Source)**: `gfortran`, `gcc`, `g++`.
 
-WRF-Chem requires several external libraries and data sources. For a detailed list and links to the official sources, see the [WRF-Chem External Sources](./wrfchem_external_sources.md) guide.
+### Environment Variables
 
-## Compilation
+Before you begin, set the following environment variables. This is a critical step.
 
-Once the environment is set up and sources are ready, you can proceed with compilation.
+```bash
+# Set this to a directory where you will build your libraries
+export DIR_LIBRARIES=~/wrf-chem-build/libs
 
-1.  **Configure WRF**: Navigate to the WRF source directory and run `./configure`. Select the appropriate option for your compiler and MPI setup (e.g., `dmpar` for distributed memory parallelism).
+# Set this to your chosen compilers (choose one block)
 
-    '''bash
+# --- Intel oneAPI ---
+export CC=icx
+export CXX=icpx
+export FC=ifx
+
+# --- GNU ---
+# export CC=gcc
+# export CXX=g++
+# export FC=gfortran
+
+# Set paths for dependencies
+export NETCDF=$DIR_LIBRARIES/netcdf
+export HDF5=$DIR_LIBRARIES/hdf5
+export PNETCDF=$DIR_LIBRARIES/pnetcdf
+
+# Update library path
+export LD_LIBRARY_PATH=$NETCDF/lib:$HDF5/lib:$PNETCDF/lib:$LD_LIBRARY_PATH
+```
+
+## 2. Acquiring the Source Code
+
+You will need the source code for WRF-Chem and its dependencies.
+
+-   **WRF-Chem**: The source code is available from the [WRF-Model GitHub Repository](https://github.com/wrf-model/WRF). You must register on the WRF website to gain access.
+-   **Dependencies**: For specific, tested versions of NetCDF, HDF5, and pnetcdf, refer to the [Comprehensive Compilation Guide](./wrfchem_compilation_guide.md).
+
+## 3. The Compilation Process
+
+The general workflow is to compile the dependencies first, then WRF-Chem itself.
+
+1.  **Compile Dependencies**: Compile HDF5, pnetcdf, NetCDF-C, and NetCDF-Fortran in that order. Detailed instructions are in the [Comprehensive Compilation Guide](./wrfchem_compilation_guide.md).
+2.  **Set WRF-Chem Environment**: Before compiling WRF, you must set:
+    ```bash
+    export WRF_CHEM=1
+    export WRF_KPP=1
+    ```
+3.  **Configure WRF-Chem**: Navigate to the WRF source directory and run:
+    ```bash
     ./configure
-    '''
-
-2.  **Edit `configure.wrf` (if needed)**: Review the generated `configure.wrf` file. You might need to manually adjust paths or compiler flags, especially for NetCDF, HDF5, and JasPer.
-
-3.  **Compile WRF**: Use the `compile` command. For WRF-Chem, you will typically compile `wrf.exe`, `real.exe`, and `ndown.exe` (if using nested domains).
-
-    '''bash
+    ```
+    Choose the option that matches your compiler and desired level of parallelism (e.g., `dmpar` for distributed memory).
+4.  **Compile WRF-Chem**:
+    ```bash
     ./compile em_real >& compile.log
-    '''
+    ```
+    The `>&` redirects both standard output and standard error to the `compile.log` file.
 
-    Check the `compile.log` for any errors. Successful compilation will result in executables like `wrf.exe`, `real.exe`, `ndown.exe` in the `main/` directory.
+## 4. Verifying the Installation
 
-4.  **Compile WRF-Chem Specific Programs**: Depending on your chemical mechanism, you may need to compile additional programs (e.g., `mozbc`, `prep_chem_sources`). Refer to the WRF-Chem user guide for details.
+A successful compilation will place several executables in the `WRF/main/` directory, including:
 
-## Verifying the Installation
+-   `wrf.exe`
+-   `real.exe`
+-   `ndown.exe`
+-   `tc.exe`
 
-After a successful compilation, you should see the following executables in the `main/` directory:
+The most reliable way to verify your build is to run an idealized test case, such as `em_real`.
 
--   `wrf.exe`: The main model executable.
--   `real.exe`: The real data initialization program.
--   `ndown.exe`: For one-way nesting.
--   `tc.exe`: For tropical cyclone bogus scheme.
+## 5. Common Compilation Errors
 
-The best way to verify the installation is to run one of the idealized test cases that come with the WRF-Chem source code.
+-   **`undefined reference to`**: Almost always a library linking issue. Double-check your `LD_LIBRARY_PATH` and ensure all libraries were built with the same compiler.
+-   **KPP Errors**: Often caused by missing `flex` or `bison`. Ensure they are installed and that the `YACC` environment variable is set.
+-   **Compiler Mismatches**: If you see errors about module files not being generated by the compiler, it means you have leftover files from a previous build. **Always run `./clean -a` before re-configuring and re-compiling.**
 
-## Common Compilation Errors
-
-Compiling WRF-Chem can be challenging. Here are some common errors and their solutions:
-
--   **`undefined reference to` errors**: This usually means the compiler cannot find a required library (e.g., NetCDF, HDF5). Double-check your `NETCDF` and `HDF5` environment variables and your `LD_LIBRARY_PATH`.
--   **KPP errors**: If you are using a KPP-based mechanism, errors can arise from the KPP build process itself. Ensure you have `flex` and `bison` installed and that the `YACC` and `FLEX_LIB_DIR` environment variables are set correctly.
--   **`No rule to make target` errors**: This can happen for some utilities like `convert_emiss`. A common workaround is to use an older version of WRF-Chem to compile the utility.
--   **Compiler mismatch errors**: If you see an error like "This module file was not generated by any release of this compiler," it means you have old files from a previous compilation. Run `./clean -a` and recompile.
-
-For more detailed troubleshooting, always examine the `compile.log` file and consult the official WRF-Chem User's Guide and support forum.
+For a deep dive into troubleshooting, refer to the `compile.log` file and the [Comprehensive Compilation Guide](./wrfchem_compilation_guide.md).

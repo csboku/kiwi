@@ -1,44 +1,47 @@
-# WRF-Chem and KPP
+# WRF-Chem and KPP: A Technical Guide
 
-The Kinetic Pre-Processor (KPP) is a tool used to generate the code for chemical mechanisms in atmospheric models like WRF-Chem. It takes a set of chemical reactions and species as input and produces Fortran code that can be compiled into the main model.
+The Kinetic Pre-Processor (KPP) is a powerful tool that forms the backbone of many of the chemical mechanisms in WRF-Chem. This guide provides a more technical look at KPP and its integration with WRF-Chem.
 
-## What is KPP?
+## The KPP Engine
 
--   **A Pre-Processor**: KPP is not a chemical mechanism itself. It's a tool that builds the mechanism code from a human-readable input file.
--   **Flexibility**: KPP allows researchers to easily add new species and reactions to a chemical mechanism without having to manually write complex Fortran code.
--   **Standardization**: It provides a standardized way to define and implement chemical mechanisms, which makes it easier to compare different mechanisms.
+KPP takes a set of text files describing a chemical mechanism and generates a Fortran solver for that mechanism. The key components of the KPP engine are:
 
-## The KPP Workflow in WRF-Chem
+-   **The Parser**: Reads the `.kpp`, `.spc`, and `.eqn` files and builds an internal representation of the chemical mechanism.
+-   **The Integrator**: KPP includes a library of numerical integrators for solving the stiff ordinary differential equations (ODEs) that describe chemical kinetics. The choice of integrator is specified in the `.kpp` file (e.g., `#INTEGRATOR rosenbrock`).
+-   **The Code Generator**: Generates the Fortran code for the chemical solver, including the Jacobian matrix and other components required by the integrator.
 
-1.  **Define the Mechanism**: The chemical mechanism is defined in a `.kpp` file (e.g., `racm.kpp`). This file lists all the chemical species and the reactions they are involved in.
-2.  **Run KPP**: The KPP tool is run on the `.kpp` file. It generates a set of Fortran files (`_kpp_*.f`) that contain the subroutines for the chemical kinetics, such as the calculation of reaction rates and the integration of the chemical equations.
-3.  **Compile into WRF-Chem**: These generated Fortran files are then compiled along with the rest of the WRF-Chem source code. The `chem_opt` parameter in the `namelist.input` file tells WRF-Chem which KPP-generated mechanism to use.
+## The WRF-Chem/KPP Interface
 
-Many of the chemical mechanisms in WRF-Chem are implemented using KPP, including [RACM](./wrfchem_racm.md), some versions of [CBMZ](./wrfchem_cbmz.md), and [MOZART](./wrfchem_mozart_kpp.md).
+The link between KPP and WRF-Chem is the WRF-Chem/KPP interface, which is a set of scripts and Fortran routines that:
 
-## The `.kpp` File Structure
+-   **Prepares the KPP input**: The interface scripts collect the necessary information from the WRF-Chem registry and the KPP mechanism files.
+-   **Runs KPP**: The scripts then run the KPP executable to generate the chemical solver.
+-   **Provides the "glue" code**: The interface includes Fortran routines that pass information (e.g., temperature, pressure, species concentrations) between the main WRF-Chem model and the KPP-generated solver.
 
-A `.kpp` file has a specific structure:
+## Advanced KPP Usage
 
--   **`#include` statements**: These are used to include other files, such as files containing rate constants.
--   **`#def` statements**: These are used to define macros.
--   **`#FAMILIES`**: This section is used to define chemical families, which can be used to simplify the definition of reactions.
--   **`#EQUATIONS`**: This is the main section of the file, where the chemical reactions are defined. Each reaction is written as an equation, with the reactants on the left and the products on the right, separated by a colon and the rate constant.
+### Modifying a Mechanism
 
-Example of a reaction in a `.kpp` file:
+To modify an existing KPP-based mechanism, you will need to edit the corresponding files in the `chem/KPP/mechanisms` directory.
 
-```
-O3 + NO = NO2 : k_o3_no ;
-```
+-   **Adding a new species**: Add the species to the `.spc` file and to the `Registry/Registry.chem` file.
+-   **Adding a new reaction**: Add the reaction to the `.eqn` file. You may also need to define a new rate constant.
 
-This line defines the reaction between ozone (O3) and nitric oxide (NO) to produce nitrogen dioxide (NO2), with the rate constant `k_o3_no`.
+### Creating a New Mechanism
 
-## Creating a New Mechanism with KPP
+Creating a new KPP-based mechanism from scratch is a major undertaking. The basic steps are:
 
-To create a new chemical mechanism for WRF-Chem, you would need to:
+1.  Create a new directory in `chem/KPP/mechanisms`.
+2.  Create the `.kpp`, `.spc`, and `.eqn` files for your new mechanism.
+3.  Add the new species to the `Registry/Registry.chem` file.
+4.  Add a new `chem_opt` for your mechanism in the WRF-Chem build system.
 
-1.  **Create a new `.kpp` file**: Define your species and reactions in the KPP syntax.
-2.  **Integrate with the WRF build system**: This involves modifying the WRF-Chem `Registry` file to add the new species, and updating the build scripts to run KPP for your new mechanism.
-3.  **Add a new `chem_opt`**: You would need to assign a new number for your mechanism in the `chem_opt` list.
+### KPP Output
 
-This is an advanced topic that requires a deep understanding of both atmospheric chemistry and the WRF-Chem source code. For most users, it is sufficient to use the chemical mechanisms that are already included with the model.
+When you compile WRF-Chem with a KPP-based mechanism, the KPP tool will generate a set of Fortran files in the `chem/KPP/` directory. These files include:
+
+-   `_kpp_`*mechanism*`_Jac.f`: The Jacobian matrix.
+-   `_kpp_`*mechanism*`_Integrator.f`: The numerical integrator.
+-   `_kpp_`*mechanism*`_Rates.f`: The chemical reaction rates.
+
+By understanding the KPP workflow and the structure of the KPP files, advanced users can gain a deeper understanding of the chemical mechanisms in WRF-Chem and even develop their own customized mechanisms.
