@@ -6,8 +6,6 @@ This is a comprehensive guide to the Weather Research and Forecasting (WRF) mode
 
 -   [Comprehensive Compilation Guide](./wrfchem_compilation_guide.md)
 -   [Installation Guide](./wrfchem_installation.md)
--   [Compiler Setups](./wrfchem_compiler_setup.md)
--   [External Sources](./wrfchem_external_sources.md)
 
 ## 2. Configuration and Running
 
@@ -15,6 +13,7 @@ This is a comprehensive guide to the Weather Research and Forecasting (WRF) mode
 -   [Physics Options](./wrfchem_physics_options.md)
 -   [Chemistry Options](./wrfchem_chemistry_options.md)
 -   [Running a Simulation](./wrfchem_running_simulations.md)
+-   [Troubleshooting Guide](./wrfchem_troubleshooting.md)
 
 ## 3. Chemical Mechanisms
 

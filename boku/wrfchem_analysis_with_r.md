@@ -1,51 +1,16 @@
-# Analyzing WRF-Chem Output with R
+# Analyzing WRF-Chem Output with R: A Technical Guide
 
-R is a powerful tool for analyzing and visualizing WRF-Chem output. This guide provides a curated list of essential R packages for atmospheric chemistry research, with a focus on those that are actively maintained and well-suited for handling WRF-Chem data.
+R provides a powerful and flexible ecosystem for analyzing and visualizing WRF-Chem output. This guide introduces a modern workflow using the `ncdf4`, `metR`, and `openair` packages.
 
-## Core Data Handling and Visualization
+## Core Packages
 
-These packages provide the foundation for reading, manipulating, and visualizing WRF-Chem data.
+-   **`ncdf4`**: The fundamental package for NetCDF file manipulation.
+-   **`metR`**: Extends `ggplot2` for meteorological data, providing tools for visualization and analysis.
+-   **`openair`**: A comprehensive package for air quality and atmospheric composition analysis.
 
--   **`metR`**: Extends `ggplot2` for meteorological data, providing tools for EOF analysis, geostrophic wind calculations, and streamline plotting. Excellent for visualizing WRF-Chem output.
--   **`openair`**: A comprehensive package for air quality and atmospheric composition analysis, including tools for bivariate polar plots, trajectory analysis, and trend detection.
--   **`terra`**: A modern package for spatial data analysis, offering superior performance for reading and writing NetCDF files and handling large atmospheric datasets.
--   **`ncdf4`**: The fundamental package for NetCDF file manipulation, providing a comprehensive interface to the NetCDF libraries.
+## Basic Workflow: Surface Maps
 
-## Statistical Modeling and Analysis
-
-These packages are essential for performing statistical analysis on your WRF-Chem results and related observational data.
-
--   **`gstat`**: Provides tools for geostatistical modeling, including variogram modeling and kriging.
--   **`extRemes`**: Specializes in extreme value analysis for weather and climate applications.
--   **`forecast`**: Offers a wide range of time series forecasting methods, including ARIMA and exponential smoothing.
--   **`rmweather`**: Uses machine learning to normalize for meteorological conditions, helping to isolate emission trends.
-
-## Trajectory Analysis
-
-These packages allow you to perform trajectory analysis to understand the transport of pollutants.
-
--   **`splitr`**: A comprehensive R interface to the NOAA HYSPLIT model, supporting forward and backward trajectory analysis.
--   **`trajSpatial`**: Enables spatial analysis of HYSPLIT trajectory endpoints.
-
-## Satellite Data Processing
-
-These packages help you work with satellite data, which can be valuable for model evaluation.
-
--   **`MODIStsp`**: Automates the preprocessing of MODIS land products.
--   **`HARP`**: A professional-grade data harmonization tool for a wide range of satellite instruments.
-
-## WRF-Chem to R Workflow
-
-A typical workflow for analyzing WRF-Chem output in R would involve:
-
-1.  **Data Input**: Use `terra` or `ncdf4` to read your `wrfout` files.
-2.  **Temporal Processing**: Use `CFtime` to handle the time coordinates correctly.
-3.  **Atmospheric Calculations**: Use `metR` for meteorological calculations and visualizations.
-4.  **Observational Comparisons**: Use `openair` to compare your model results with observational data.
-
-## Example Workflow: Plotting Surface Ozone
-
-Here is a simple example of how you might use R to read a `wrfout` file and create a plot of surface ozone.
+The fundamental workflow involves opening the data, extracting variables, and plotting them.
 
 ```R
 # Load the required libraries
@@ -54,36 +19,71 @@ library(ggplot2)
 library(metR)
 
 # Open the wrfout file
-nc_file <- nc_open("wrfout_d01_2023-07-17_00:00:00")
+nc_file <- nc_open("wrfout_d01_...")
 
-# Read the ozone data (assuming it's the first time step and first vertical level)
+# Read the data
 ozone <- ncvar_get(nc_file, "o3", start = c(1, 1, 1, 1), count = c(-1, -1, 1, 1))
-
-# Read the latitude and longitude data
 lat <- ncvar_get(nc_file, "XLAT")
 lon <- ncvar_get(nc_file, "XLONG")
-
-# Close the NetCDF file
 nc_close(nc_file)
 
-# Create a data frame
-df <- data.frame(
-  lon = as.vector(lon),
-  lat = as.vector(lat),
-  ozone = as.vector(ozone) * 1e9 # Convert to ppb
-)
-
-# Create the plot
+# Create a data frame and plot
+df <- data.frame(lon = as.vector(lon), lat = as.vector(lat), ozone = as.vector(ozone) * 1e9)
 ggplot(df, aes(x = lon, y = lat, fill = ozone)) +
   geom_raster() +
   scale_fill_viridis_c() +
-  labs(
-    title = "Surface Ozone",
-    x = "Longitude",
-    y = "Latitude",
-    fill = "Ozone (ppb)"
-  ) +
+  labs(title = "Surface Ozone", fill = "Ozone (ppb)") +
   theme_minimal()
 ```
 
-This curated list of R packages provides a powerful toolkit for atmospheric chemistry researchers working with WRF-Chem data. For a more exhaustive list of packages and more detailed information, refer to the original source document.
+## Advanced Example: Time Series Analysis with `openair`
+
+The `openair` package is excellent for time series analysis.
+
+```R
+# Load the required libraries
+library(ncdf4)
+library(openair)
+library(dplyr)
+
+# --- Function to find the nearest grid cell ---
+find_nearest_grid_cell <- function(lon_wrf, lat_wrf, target_lon, target_lat) {
+  dist <- sqrt((lon_wrf - target_lon)^2 + (lat_wrf - target_lat)^2)
+  which(dist == min(dist), arr.ind = TRUE)
+}
+
+# --- Main script ---
+# Target location
+target_lon <- -97.5
+target_lat <- 35.5
+
+# Open the wrfout file
+nc_file <- nc_open("wrfout_d01_...")
+
+# Read lat/lon and find the nearest grid cell
+lat <- ncvar_get(nc_file, "XLAT")
+lon <- ncvar_get(nc_file, "XLONG")
+grid_cell <- find_nearest_grid_cell(lon, lat, target_lon, target_lat)
+
+# Read the time series of ozone for the nearest grid cell
+ozone_ts <- ncvar_get(nc_file, "o3",
+                      start = c(grid_cell[2], grid_cell[1], 1, 1),
+                      count = c(1, 1, 1, -1))
+
+# Read the time variable
+time_char <- ncvar_get(nc_file, "Times")
+time <- as.POSIXct(apply(time_char, 1, paste, collapse = ""), format = "%Y-%m-%d_%H:%M:%S")
+
+nc_close(nc_file)
+
+# Create a data frame for openair
+df_ts <- data.frame(
+  date = time,
+  o3 = as.vector(ozone_ts) * 1e9 # Convert to ppb
+)
+
+# Create a time series plot
+timePlot(df_ts, pollutant = "o3", ylab = "Ozone (ppb)")
+```
+
+This workflow provides a modern and powerful approach to analyzing WRF-Chem data with R. By leveraging these packages, you can create efficient, scalable, and reproducible analysis pipelines.
