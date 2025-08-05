@@ -5,3 +5,5 @@
 ## Linux
 
 - [Neovim](./neovim.md)
+
+## [WRFChem](./wrfchem.md)
